@@ -1,0 +1,861 @@
+{
+  "name": "IG Commenter TEMPLATE",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -2224,
+        368
+      ],
+      "id": "e7a45b12-0154-4db6-abcd-0b5f6ca19bb0",
+      "name": "Loop"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7510f9a8-d7f3-44ef-96b5-1c6ff6c6f90d",
+              "leftValue": "={{ $json.url }}",
+              "rightValue": "https://www.instagram.com/p/",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        -2416,
+        368
+      ],
+      "id": "9107c4c1-cac5-4123-9f5e-c46641c31765",
+      "name": "Only Posts"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "IG Comment Log",
+        "limit": 3,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "post_url",
+              "condition": "eq",
+              "keyValue": "={{ $json.url }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1984,
+        384
+      ],
+      "id": "35c94fa4-f400-4315-a5e0-2554f0e96700",
+      "name": "Check for Duplicate",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "RpSqnpPgtvUj4uIa",
+          "name": "Nova Glass Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "99954332-83e9-4bbf-85cc-cb025848d5b9",
+              "leftValue": "={{ $json.post_url }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1808,
+        384
+      ],
+      "id": "f7878c25-b702-4780-ae1e-506face28670",
+      "name": "If New -> YES"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Loop').item.json.type }}",
+                    "rightValue": "Sidecar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "8364f416-e61b-4739-869e-e4a6d94673ef"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Sidecar (Carousel)"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "f3d112c9-2404-4fe1-84c1-584112fdead9",
+                    "leftValue": "={{ $('Loop').item.json.type }}",
+                    "rightValue": "Image",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Image"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "2d58edf2-1392-4554-a6fe-7ba65f746228",
+                    "leftValue": "={{ $('Loop').item.json.type }}",
+                    "rightValue": "Video",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Video"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -1584,
+        352
+      ],
+      "id": "35f1b48e-3251-416d-84e0-880a168f4f83",
+      "name": "Switch by Format"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "chatgpt-4o-latest",
+          "mode": "list",
+          "cachedResultName": "CHATGPT-4O-LATEST"
+        },
+        "text": "Analyze the provided Instagram post image and generate a concise summary. The image will be one of the following:\n\nA screenshot (e.g., a tweet, a LinkedIn post, or a conversation)\nAn infographic (containing data, charts, or key takeaways)\nA picture (a general image with or without text)\nInstructions for Analysis:\nIdentify the type of image (screenshot, infographic, or picture).\nSummarize the key content in 2-3 sentences.\nIf it's a screenshot, summarize the main message of the text.\nIf it's an infographic, highlight the key points, numbers, or insights.\nIf it's a picture, describe what it depicts and any notable details.\nKeep the summary professional and LinkedIn-friendly.\nAvoid adding opinions or assumptions beyond what is visible in the image.\nRules:\n\nDo not generate unnecessary explanations.\nDo not assume missing details—only summarize visible content.\nKeep the summary concise, clear, and relevant ",
+        "inputType": "base64",
+        "options": {
+          "detail": "auto"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -1120,
+        272
+      ],
+      "id": "cffdcbff-c362-4ad0-8121-e398100ae247",
+      "name": "Analyze image",
+      "credentials": {
+        "openAiApi": {
+          "id": "5Tttpdj4KKZ906os",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.apify.com/v2/acts/linen_snack~instagram-videos-transcipt-subtitles-and-translate/run-sync-get-dataset-items?token={{ $env.APIFY_API_KEY }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"instagramUrl\": \"{{ $('Loop').item.json.url }}\",\n  \"openaiApiKey\": \"{{ $env.OPENAI_API_KEY }}\",\n  \"translateTo\": \"en\",\n  \"includeSubtitles\": true,\n  \"responseFormat\": \"json\"\n}\n",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1216,
+        464
+      ],
+      "id": "19fb7d45-6b76-41d2-919e-b896e5f36d44",
+      "name": "Run IG Transcriber / Get Result",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Loop').item.json.displayUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1312,
+        272
+      ],
+      "id": "989cf759-761e-4014-a16a-e29bd37c1e2e",
+      "name": "Download Image"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"status\": true\n}",
+        "autoFix": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -528,
+        576
+      ],
+      "id": "cde1cf94-9a92-4e88-8459-e61297979e14",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-nano",
+          "mode": "list"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -832,
+        624
+      ],
+      "id": "11a457cd-1eb8-4a08-a405-d8bac632a07a",
+      "name": "GPT 5-nano",
+      "credentials": {
+        "openAiApi": {
+          "id": "5Tttpdj4KKZ906os",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "3db4a0c4-7e6a-4b2c-8818-a6c48c0ab5e0",
+              "leftValue": "={{ $json.output.status }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -352,
+        368
+      ],
+      "id": "df7e4e13-2f85-488a-bb9e-4af8bf2160a1",
+      "name": "If True"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Source account: {{ $('Loop').item.json.ownerFullName }} @{{ $('Loop').item.json.ownerUsername }}\n\nPost caption:{{ $('Loop').item.json.caption }}\n\n\nPost image analysis or transcription:\n{{ $('Loop').item.json.caption }}\n\nPost type: {{ $('Loop').item.json.type }}\n\nHashtags: {{ $('Loop').item.json.hashtags }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=Your goal is to fully understand the Instagram post including the caption and the transcript or image analysis. Then you will help decide if the post is a good option for me to comment on.\n\nOutput true if:\n\nThe post is about any form of life or living things — including humans, animals, plants, ecosystems, travel, biology, adventure, body parts, body functions, evolution, nature, habitats, or documentaries related to these topics.\n\nThere is enough unique information in the input to write a well-thought comment.\n\nOutput false if:\n\nThe topic of the post is unrelated to life, living organisms, biology, nature, or documentaries about these subjects.\n\nThere is not enough unique information in the input to write a well-thought comment.\n\nMost should PASS\n\nRULES:\n\nOutput ONLY true/false in BOOLEAN"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -704,
+        368
+      ],
+      "id": "41fb29ec-2d15-4473-84b2-04d83728aa2a",
+      "name": "AI Qualifier (T/F)"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Source account: {{ $('Loop').item.json.ownerFullName }} @{{ $('Loop').item.json.ownerUsername }}\n\nPost caption:\n{{ $('Loop').item.json.caption }}\n\nPost image analysis or transcription:\n{{ $('Set to \\'result\\'').item.json.result }}\n\nPost type: {{ $('Loop').item.json.type }}\n\nHashtags: {{ $('Loop').item.json.hashtags }}",
+        "options": {
+          "systemMessage": "You are a social media expert working for Lead Gen Jay. Your task is to read the Instagram post from input and write a single comment designed to attract the most likes. \n\nRules:\n- Style: Write in the voice of Alex Hormozi. Direct. Insightful. Engaging. Witty. Clever. \n- Goal: Make readers nod, laugh, reshare the comment. \n- Length: 1 sentence only. No fluff, no filler.\n- Content: \n   • Never use generic compliments (e.g., \"great post\"). \n   • If the post gives advice, add a sharper insight or practical tip. \n- Format: \n   • Output ONLY the comment in plain text. No formatting, no explanations. \n   • Start with a capitalized word. \n   • End with a period. \n   • Do not use any special characters besides a period. \n- If you cannot create a strong comment, output nothing.\n\nAvoid using '-' or any other characters not normally typed on mobile phone. I REPEAT... do NOT use any characters in the comment other than a period at the end.\n\nUse your memory and alternate the length and styles of comments that you write. "
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -112,
+        352
+      ],
+      "id": "526df6b0-193a-4bd3-96e3-b21e28123a36",
+      "name": "Viral Comment Writer"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b310360e-17d2-4384-a916-539e451c0b7d",
+              "name": "result",
+              "value": "={{ $json.result?.text || $json.content || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "6223666e-381a-4fdf-bbce-8c75d1fa367c",
+              "name": "duration (sec)",
+              "value": "={{ $json.result.usage.seconds }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -912,
+        368
+      ],
+      "id": "60fc1fda-f877-41af-af50-dd3de9ab2617",
+      "name": "Set to 'result'"
+    },
+    {
+      "parameters": {
+        "model": "anthropic/claude-sonnet-4",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -112,
+        224
+      ],
+      "id": "1038ee7f-3206-48ff-847b-4422149cf6ca",
+      "name": "Sonnet 4",
+      "credentials": {
+        "openRouterApi": {
+          "id": "xqMshLSadNtXl6Pg",
+          "name": "Mohz"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "IG Comment Log",
+        "dataToSend": "autoMapInputData"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        544
+      ],
+      "id": "bfa79e37-680b-495c-afc7-089ff833dc25",
+      "name": "Add Row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "RpSqnpPgtvUj4uIa",
+          "name": "Nova Glass Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -592,
+        720
+      ],
+      "id": "3dffcdc4-c8e7-4e6c-b08c-8f1fc504a8c9",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "5Tttpdj4KKZ906os",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.resource.defaultDatasetId }}",
+        "contextWindowLength": 100
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -16,
+        224
+      ],
+      "id": "a9d92c15-b3a0-4377-970b-0f3aa3b9eeb8",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "b0f0224f-a1af-4db8-8185-24682305e4b7",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -2816,
+        368
+      ],
+      "id": "4fc91ee5-3bc2-4393-aad0-6c161675eeb8",
+      "name": "Webhook",
+      "webhookId": "b0f0224f-a1af-4db8-8185-24682305e4b7"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.apify.com/v2/datasets/{{ $json.body.resource.defaultDatasetId }}/items",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "={{ $env.APIFY_API_KEY }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.APIFY_API_KEY }}"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -2608,
+        368
+      ],
+      "id": "d122f201-e44b-403f-a62b-78b0f2d18a97",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "tableId": "IG Comment Log",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "post_url",
+              "fieldValue": "={{ $('Loop').item.json.url }}"
+            },
+            {
+              "fieldId": "author",
+              "fieldValue": "={{ $('Loop').item.json.ownerFullName }}"
+            },
+            {
+              "fieldId": "post_content",
+              "fieldValue": "={{ $('Loop').item.json.caption }}"
+            },
+            {
+              "fieldId": "approved",
+              "fieldValue": "true"
+            },
+            {
+              "fieldId": "output",
+              "fieldValue": "={{ $json.output }}"
+            },
+            {
+              "fieldId": "Apify log",
+              "fieldValue": "={{ $('Webhook').item.json.body.resource.defaultDatasetId }}"
+            },
+            {
+              "fieldId": "type",
+              "fieldValue": "={{ $('Loop').item.json.type }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        192,
+        352
+      ],
+      "id": "ea05e964-eaab-49d3-8a3a-b5b0307aef1b",
+      "name": "Add to Row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "RpSqnpPgtvUj4uIa",
+          "name": "Nova Glass Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1QNJaqwVdwmYtAkpjCTGPEVc6MMGitZaDSYIVhuC9iFY",
+          "mode": "list",
+          "cachedResultName": "Instagram Comment Automation",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1QNJaqwVdwmYtAkpjCTGPEVc6MMGitZaDSYIVhuC9iFY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Posts to Comment",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1QNJaqwVdwmYtAkpjCTGPEVc6MMGitZaDSYIVhuC9iFY/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $json.created_at }}",
+            "Post Content": "={{ $json.post_content }}",
+            "Post Comment": "={{ $json.output }}",
+            "Post Url": "={{ $json.post_url }}",
+            "Author": "={{ $json.author }}"
+          },
+          "matchingColumns": [
+            "Date"
+          ],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Post Url",
+              "displayName": "Post Url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Post Comment",
+              "displayName": "Post Comment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Post Content",
+              "displayName": "Post Content",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Author",
+              "displayName": "Author",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        384,
+        352
+      ],
+      "id": "118f4ba7-f613-4f0f-bcee-46c5dbcfea6a",
+      "name": "Save Data to Sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Brsoxqz31iCsJDo6",
+          "name": "NovaGlass"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Loop": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Check for Duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Only Posts": {
+      "main": [
+        [
+          {
+            "node": "Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check for Duplicate": {
+      "main": [
+        [
+          {
+            "node": "If New -> YES",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If New -> YES": {
+      "main": [
+        [
+          {
+            "node": "Switch by Format",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch by Format": {
+      "main": [
+        [
+          {
+            "node": "Download Image",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Download Image",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Run IG Transcriber / Get Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run IG Transcriber / Get Result": {
+      "main": [
+        [
+          {
+            "node": "Set to 'result'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze image": {
+      "main": [
+        [
+          {
+            "node": "Set to 'result'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Image": {
+      "main": [
+        [
+          {
+            "node": "Analyze image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Qualifier (T/F)",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT 5-nano": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Qualifier (T/F)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If True": {
+      "main": [
+        [
+          {
+            "node": "Viral Comment Writer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Qualifier (T/F)": {
+      "main": [
+        [
+          {
